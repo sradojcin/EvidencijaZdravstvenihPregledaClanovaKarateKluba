@@ -1,0 +1,151 @@
+USE [VP2026KarateKlubZdravstveniPreglediV1];
+GO
+
+CREATE PROCEDURE [dbo].[sp_DodajZdravstveniPregled]
+    @ClanID INT,
+    @DatumPregleda DATE,
+    @Napomena NVARCHAR(255) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Clan WHERE ClanID = @ClanID)
+    BEGIN
+        RAISERROR('Nije moguce uneti pregled. Clan ne postoji.', 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO dbo.ZdravstveniPregled (ClanID, DatumPregleda, Napomena)
+    VALUES (@ClanID, @DatumPregleda, @Napomena);
+END
+GO
+
+CREATE PROCEDURE [dbo].[sp_IzmeniZdravstveniPregled]
+    @ZdravstveniPregledID INT,
+    @ClanID INT,
+    @DatumPregleda DATE,
+    @Napomena NVARCHAR(255) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM dbo.ZdravstveniPregled
+        WHERE ZdravstveniPregledID = @ZdravstveniPregledID
+    )
+    BEGIN
+        RAISERROR('Zdravstveni pregled ne postoji.', 16, 1);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.Clan WHERE ClanID = @ClanID)
+    BEGIN
+        RAISERROR('Clan ne postoji.', 16, 1);
+        RETURN;
+    END
+
+    UPDATE dbo.ZdravstveniPregled
+    SET ClanID = @ClanID,
+        DatumPregleda = @DatumPregleda,
+        Napomena = @Napomena
+    WHERE ZdravstveniPregledID = @ZdravstveniPregledID;
+END
+GO
+
+CREATE PROCEDURE [dbo].[sp_ObrisiZdravstveniPregled]
+    @ZdravstveniPregledID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM dbo.ZdravstveniPregled
+        WHERE ZdravstveniPregledID = @ZdravstveniPregledID
+    )
+    BEGIN
+        RAISERROR('Zdravstveni pregled ne postoji.', 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM dbo.ZdravstveniPregled
+    WHERE ZdravstveniPregledID = @ZdravstveniPregledID;
+END
+GO
+
+CREATE PROCEDURE [dbo].[sp_DajSveZdravstvenePreglede]
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT ZdravstveniPregledID, ClanID, DatumPregleda, Napomena
+    FROM dbo.vw_PreglediSaClanom
+    ORDER BY DatumPregleda DESC, Prezime, Ime;
+END
+GO
+
+CREATE PROCEDURE [dbo].[sp_DajPregledeZaClana]
+    @ClanID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT ZdravstveniPregledID, ClanID, DatumPregleda, Napomena
+    FROM dbo.vw_PreglediSaClanom
+    WHERE ClanID = @ClanID
+    ORDER BY DatumPregleda DESC, Prezime, Ime;
+END
+GO
+
+CREATE PROCEDURE [dbo].[sp_DajPoslednjiPregledZaClana]
+    @ClanID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP 1 ZdravstveniPregledID, ClanID, DatumPregleda, Napomena
+    FROM dbo.ZdravstveniPregled
+    WHERE ClanID = @ClanID
+    ORDER BY DatumPregleda DESC;
+END
+GO
+
+CREATE PROCEDURE [dbo].[sp_PrikazClanovaSaStatusomPregleda]
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ClanID,
+        JMBG,
+        Ime,
+        Prezime,
+        DatumRodjenja,
+        PoslednjiPregled,
+        StatusZdravstvenogPregleda
+    FROM dbo.vw_ClanoviSaStatusomPregleda
+    ORDER BY Prezime, Ime;
+END
+GO
+
+CREATE PROCEDURE [dbo].[sp_FiltrirajClanovePoStatusuPregleda]
+    @Status NVARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ClanID,
+        JMBG,
+        Ime,
+        Prezime,
+        DatumRodjenja,
+        PoslednjiPregled,
+        StatusZdravstvenogPregleda
+    FROM dbo.vw_ClanoviSaStatusomPregleda
+    WHERE StatusZdravstvenogPregleda = @Status
+    ORDER BY Prezime, Ime;
+END
+GO
+
